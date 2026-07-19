@@ -33,3 +33,9 @@ def register_student(payload: RegisterStudentRequest, db: Session = Depends(get_
     return user
 
 
+@router.post("/register/mentor", response_model=UserOut, status_code=status.HTTP_201_CREATED)
+def register_mentor(payload: RegisterMentorRequest, db: Session = Depends(get_db)):
+    service = AuthService(db)
+    user = service.register_mentor(payload)
+    return user
+
