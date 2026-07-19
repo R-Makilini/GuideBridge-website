@@ -23,3 +23,20 @@ class RegisterStudentRequest(BaseModel):
         if error:
             raise ValueError(error)
         return v
+    
+    
+class RegisterMentorRequest(BaseModel):
+    full_name: str = Field(min_length=2, max_length=150)
+    email: EmailStr
+    password: str
+    phone: Optional[str] = None
+    university_id: Optional[str] = None
+
+    @field_validator("password")
+    @classmethod
+    def check_password(cls, v: str) -> str:
+        error = validate_password_strength(v)
+        if error:
+            raise ValueError(error)
+        return v
+   
