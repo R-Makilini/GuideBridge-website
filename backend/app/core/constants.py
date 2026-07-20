@@ -1,0 +1,136 @@
+import enum
+
+
+class UserRole(str, enum.Enum):
+    STUDENT = "STUDENT"
+    MENTOR = "MENTOR"
+    SUPER_ADMIN = "SUPER_ADMIN"
+
+
+class UserStatus(str, enum.Enum):
+    ACTIVE = "ACTIVE"
+    SUSPENDED = "SUSPENDED"
+    BANNED = "BANNED"
+    PENDING = "PENDING"
+
+
+class AuthProvider(str, enum.Enum):
+    LOCAL = "LOCAL"
+
+
+class VerificationStatus(str, enum.Enum):
+    PENDING = "PENDING"
+    APPROVED = "APPROVED"
+    REJECTED = "REJECTED"
+    REUPLOAD_REQUESTED = "REUPLOAD_REQUESTED"
+
+
+class DocumentType(str, enum.Enum):
+    UNIVERSITY_ID = "UNIVERSITY_ID"
+    ENROLLMENT_LETTER = "ENROLLMENT_LETTER"
+    CV = "CV"
+    OTHER = "OTHER"
+
+
+class BookingStatus(str, enum.Enum):
+    PENDING = "PENDING"
+    PAYMENT_PENDING = "PAYMENT_PENDING"
+    CONFIRMED = "CONFIRMED"
+    ACCEPTED = "ACCEPTED"
+    REJECTED = "REJECTED"
+    CANCELLED = "CANCELLED"
+    COMPLETED = "COMPLETED"
+    RESCHEDULED = "RESCHEDULED"
+    NO_SHOW = "NO_SHOW"
+
+
+class PaymentStatus(str, enum.Enum):
+    PENDING = "PENDING"
+    PROCESSING = "PROCESSING"
+    PAID = "PAID"
+    FAILED = "FAILED"
+    CANCELLED = "CANCELLED"
+    REFUNDED = "REFUNDED"
+    PARTIALLY_REFUNDED = "PARTIALLY_REFUNDED"
+
+
+class RefundStatus(str, enum.Enum):
+    REQUESTED = "REQUESTED"
+    APPROVED = "APPROVED"
+    REJECTED = "REJECTED"
+    PROCESSED = "PROCESSED"
+
+
+class QuestionVisibility(str, enum.Enum):
+    PUBLIC = "PUBLIC"
+    ANONYMOUS = "ANONYMOUS"
+    PRIVATE = "PRIVATE"
+
+
+class ResourceType(str, enum.Enum):
+    STUDY_NOTE = "STUDY_NOTE"
+    PAST_PAPER = "PAST_PAPER"
+    MODEL_ANSWER = "MODEL_ANSWER"
+    CAREER_GUIDE = "CAREER_GUIDE"
+    SCHOLARSHIP = "SCHOLARSHIP"
+    UNIVERSITY_GUIDE = "UNIVERSITY_GUIDE"
+    VIDEO = "VIDEO"
+    PDF = "PDF"
+    DOCUMENT = "DOCUMENT"
+
+
+class ResourceApprovalStatus(str, enum.Enum):
+    PENDING = "PENDING"
+    APPROVED = "APPROVED"
+    REJECTED = "REJECTED"
+
+
+class NotificationType(str, enum.Enum):
+    REGISTRATION = "REGISTRATION"
+    EMAIL_VERIFICATION = "EMAIL_VERIFICATION"
+    MENTOR_VERIFICATION = "MENTOR_VERIFICATION"
+    BOOKING_CREATED = "BOOKING_CREATED"
+    BOOKING_ACCEPTED = "BOOKING_ACCEPTED"
+    BOOKING_REJECTED = "BOOKING_REJECTED"
+    BOOKING_CANCELLED = "BOOKING_CANCELLED"
+    BOOKING_RESCHEDULED = "BOOKING_RESCHEDULED"
+    PAYMENT_SUCCESS = "PAYMENT_SUCCESS"
+    PAYMENT_FAILURE = "PAYMENT_FAILURE"
+    NEW_MESSAGE = "NEW_MESSAGE"
+    SESSION_REMINDER = "SESSION_REMINDER"
+    NEW_ANSWER = "NEW_ANSWER"
+    HELPFUL_VOTE = "HELPFUL_VOTE"
+    RESOURCE_APPROVAL = "RESOURCE_APPROVAL"
+    ADMIN_ANNOUNCEMENT = "ADMIN_ANNOUNCEMENT"
+
+
+class ReportTargetType(str, enum.Enum):
+    USER = "USER"
+    MESSAGE = "MESSAGE"
+    QUESTION = "QUESTION"
+    ANSWER = "ANSWER"
+    RESOURCE = "RESOURCE"
+
+
+class ReportStatus(str, enum.Enum):
+    OPEN = "OPEN"
+    UNDER_REVIEW = "UNDER_REVIEW"
+    WARNED = "WARNED"
+    SUSPENDED = "SUSPENDED"
+    BANNED = "BANNED"
+    DISMISSED = "DISMISSED"
+    RESOLVED = "RESOLVED"
+
+
+class BookmarkTargetType(str, enum.Enum):
+    MENTOR = "MENTOR"
+    QUESTION = "QUESTION"
+    ANSWER = "ANSWER"
+    RESOURCE = "RESOURCE"
+
+
+class VideoSessionStatus(str, enum.Enum):
+    SCHEDULED = "SCHEDULED"
+    LIVE = "LIVE"
+    COMPLETED = "COMPLETED"
+    CANCELLED = "CANCELLED"
