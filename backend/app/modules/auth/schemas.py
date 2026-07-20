@@ -55,3 +55,9 @@ class TokenResponse(BaseModel):
 
 class RefreshTokenRequest(BaseModel):
     refresh_token: str
+
+
+class VerifyEmailRequest(BaseModel):
+    token: Optional[str] = None
+    otp_code: Optional[str] = None
+    email: Optional[EmailStr] = None

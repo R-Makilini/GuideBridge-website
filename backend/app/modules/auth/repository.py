@@ -68,3 +68,33 @@ class AuthRepository:
         if replaced_by_id:
             token.replaced_by_id = replaced_by_id
         self.db.add(token)
+        
+        
+    def create_email_verification_token(self, token: EmailVerificationToken) -> EmailVerificationToken:
+        self.db.add(token)
+        self.db.flush()
+        return token
+
+    def get_valid_email_token_by_otp(self, user_id: str, otp_code: str) -> Optional[EmailVerificationToken]:
+        return (
+            self.db.query(EmailVerificationToken)
+            .filter(
+                EmailVerificationToken.user_id == user_id,
+                EmailVerificationToken.otp_code == otp_code,
+                EmailVerificationToken.used_at.is_(None),
+                EmailVerificationToken.expires_at > utcnow(),
+            )
+            .order_by(EmailVerificationToken.created_at.desc())
+            .first()
+        )
+
+    def get_latest_email_tokens(self, user_id: str) -> list[EmailVerificationToken]:
+        return (
+            self.db.query(EmailVerificationToken)
+            .filter(
+                EmailVerificationToken.user_id == user_id,
+                EmailVerificationToken.used_at.is_(None),
+                EmailVerificationToken.expires_at > utcnow(),
+            )
+            .all()
+        )
