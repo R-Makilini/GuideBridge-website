@@ -52,3 +52,8 @@ def login(payload: LoginRequest, request: Request, db: Session = Depends(get_db)
     service = AuthService(db)
     _, tokens = service.login(payload, ip_address=_client_ip(request))
     return tokens
+
+@router.post("/refresh", response_model=TokenResponse)
+def refresh_token(payload: RefreshTokenRequest, db: Session = Depends(get_db)):
+    service = AuthService(db)
+    return service.refresh_access_token(payload.refresh_token)

@@ -190,3 +190,51 @@ class AuthService:
         self.repo.create_refresh_token(refresh_row)
 
         return TokenResponse(access_token=access_token, refresh_token=raw_refresh)
+
+
+    def refresh_access_token(self, raw_refresh_token: str) -> TokenResponse:
+        try:
+            payload = decode_token(raw_refresh_token)
+        except TokenError as exc:
+            raise UnauthorizedError("Invalid or expired refresh token.") from exc
+
+        if payload.get("type") != "refresh":
+            raise UnauthorizedError("Invalid token type.")
+
+        session_id = payload.get("sid")
+        user_id = payload.get("sub")
+        session = self.repo.get_session(session_id) if session_id else None
+        if not session or not session.is_active:
+            raise UnauthorizedError("Session is no longer active.")
+
+        candidates = self.repo.get_refresh_tokens_for_session(session_id)
+        matched: RefreshToken | None = None
+        for candidate in candidates:
+            if verify_token_hash(raw_refresh_token, candidate.token_hash):
+                matched = candidate
+                break
+
+        if not matched or matched.expires_at < utcnow():
+        
+            self.repo.revoke_session(session)
+            self.repo.commit()
+            raise UnauthorizedError("Refresh token is invalid, expired, or already used.")
+
+        user = self.repo.get_user_by_id(user_id)
+        if not user:
+            raise UnauthorizedError("User not found.")
+
+    
+        access_token = create_access_token(subject=user.id, role=user.role.value)
+        new_raw_refresh, expires_at = create_refresh_token(subject=user.id, session_id=session.id)
+        new_token_row = RefreshToken(
+            session_id=session.id,
+            user_id=user.id,
+            token_hash=hash_token(new_raw_refresh),
+            expires_at=expires_at,
+        )
+        self.repo.create_refresh_token(new_token_row)
+        self.repo.revoke_refresh_token(matched, replaced_by_id=new_token_row.id)
+        self.repo.commit()
+
+        return TokenResponse(access_token=access_token, refresh_token=new_raw_refresh)
