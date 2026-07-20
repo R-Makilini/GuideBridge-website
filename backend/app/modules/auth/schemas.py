@@ -40,3 +40,9 @@ class RegisterMentorRequest(BaseModel):
             raise ValueError(error)
         return v
    
+   
+class LoginRequest(BaseModel):
+    email: EmailStr
+    password: str
+    device_info: Optional[str] = None
+
