@@ -45,8 +45,6 @@ class AuthService:
     def __init__(self, db: Session):
         self.db = db
         self.repo = AuthRepository(db)
-
-
     def register_student(self, payload: RegisterStudentRequest) -> User:
         if self.repo.get_user_by_email(payload.email):
             raise ConflictError("An account with this email already exists.")
@@ -74,8 +72,7 @@ class AuthService:
         self.repo.commit()
         logger.info("Student registered: %s", user.email)
         return user
-    
-    
+
     def register_mentor(self, payload: RegisterMentorRequest) -> User:
         if self.repo.get_user_by_email(payload.email):
             raise ConflictError("An account with this email already exists.")
@@ -98,6 +95,7 @@ class AuthService:
         self.repo.commit()
         logger.info("Mentor registered: %s", user.email)
         return user
+
     
     
     def _issue_email_verification(self, user: User) -> str:
@@ -131,6 +129,7 @@ class AuthService:
             if not token_row:
                 raise BadRequestError("Invalid or expired OTP code.")
         elif payload.token:
+            
             # Token-based flow: search among unused, unexpired tokens for a hash match.
             candidates: list[EmailVerificationToken] = []
             if payload.email:
@@ -215,6 +214,7 @@ class AuthService:
                 break
 
         if not matched or matched.expires_at < utcnow():
+            
         
             self.repo.revoke_session(session)
             self.repo.commit()
@@ -224,6 +224,7 @@ class AuthService:
         if not user:
             raise UnauthorizedError("User not found.")
 
+        
     
         access_token = create_access_token(subject=user.id, role=user.role.value)
         new_raw_refresh, expires_at = create_refresh_token(subject=user.id, session_id=session.id)
@@ -237,4 +238,73 @@ class AuthService:
         self.repo.revoke_refresh_token(matched, replaced_by_id=new_token_row.id)
         self.repo.commit()
 
+        return TokenResponse(access_token=access_token, refresh_token=new_raw_refresh)
+
+    def logout_current_device(self, user_id: str, session_id: str) -> None:
+        session = self.repo.get_session(session_id)
+        if session and session.user_id == user_id:
+            self.repo.revoke_session(session)
+            self.repo.commit()
+
+    def logout_all_devices(self, user_id: str) -> None:
+        for session in self.repo.get_active_sessions(user_id):
+            self.repo.revoke_session(session)
+        self.repo.commit()
+
+    def forgot_password(self, payload: ForgotPasswordRequest) -> None:
+        user = self.repo.get_user_by_email(payload.email)
+        if not user:
+            
+            logger.info("Password reset requested for unknown email: %s", payload.email)
+            return
+
+        raw_token = generate_url_safe_token()
+        token_row = PasswordResetToken(
+            user_id=user.id,
+            token_hash=hash_token(raw_token),
+            expires_at=utcnow() + timedelta(minutes=PASSWORD_RESET_TTL_MINUTES),
+        )
+        self.repo.create_password_reset_token(token_row)
+        self.repo.commit()
+
+        reset_link = f"{settings.FRONTEND_URL}/reset-password?token={raw_token}&email={user.email}"
+        email_service.send(
+            to_email=user.email,
+            subject="Reset your GuideBridge password",
+            html_body=password_reset_email_html(user.full_name, reset_link),
+        )
+
+    def reset_password(self, payload: ResetPasswordRequest, email: str) -> None:
+        user = self.repo.get_user_by_email(email)
+        if not user:
+            raise NotFoundError("User not found.")
+
+        candidates = self.repo.get_active_password_reset_tokens(user.id)
+        matched: PasswordResetToken | None = None
+        for candidate in candidates:
+            if verify_token_hash(payload.token, candidate.token_hash):
+                matched = candidate
+                break
+
+        if not matched:
+            raise BadRequestError("Invalid or expired reset token.")
+
+        user.hashed_password = hash_password(payload.new_password)
+        matched.used_at = utcnow()
+        self.db.add(user)
+        self.db.add(matched)
+
+        
+        for session in self.repo.get_active_sessions(user.id):
+            self.repo.revoke_session(session)
+
+        self.repo.commit()
+        logger.info("Password reset for user: %s", user.email)
+
+    def change_password(self, user: User, current_password: str, new_password: str) -> None:
+        if not user.hashed_password or not verify_password(current_password, user.hashed_password):
+            raise UnauthorizedError("Current password is incorrect.")
+        user.hashed_password = hash_password(new_password)
+        self.db.add(user)
+        self.repo.commit()
         return TokenResponse(access_token=access_token, refresh_token=new_raw_refresh)

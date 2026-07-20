@@ -53,7 +53,60 @@ def login(payload: LoginRequest, request: Request, db: Session = Depends(get_db)
     _, tokens = service.login(payload, ip_address=_client_ip(request))
     return tokens
 
+
 @router.post("/refresh", response_model=TokenResponse)
 def refresh_token(payload: RefreshTokenRequest, db: Session = Depends(get_db)):
     service = AuthService(db)
     return service.refresh_access_token(payload.refresh_token)
+
+
+@router.post("/logout", status_code=status.HTTP_204_NO_CONTENT)
+def logout_current_device(
+    token_payload: dict = Depends(get_current_access_token_payload),
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    
+    service = AuthService(db)
+    service.logout_all_devices(current_user.id)
+
+
+@router.post("/logout-all", status_code=status.HTTP_204_NO_CONTENT)
+def logout_all_devices(current_user: User = Depends(get_current_user), db: Session = Depends(get_db)):
+    service = AuthService(db)
+    service.logout_all_devices(current_user.id)
+
+
+@router.get("/me", response_model=UserOut)
+def get_me(current_user: User = Depends(get_current_user)):
+    return current_user
+
+
+@router.post("/change-password", status_code=status.HTTP_204_NO_CONTENT)
+def change_password(
+    payload: ChangePasswordRequest,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    service = AuthService(db)
+    service.change_password(current_user, payload.current_password, payload.new_password)
+
+
+@router.post("/forgot-password", status_code=status.HTTP_204_NO_CONTENT)
+def forgot_password(payload: ForgotPasswordRequest, db: Session = Depends(get_db)):
+    service = AuthService(db)
+    service.forgot_password(payload)
+
+
+@router.post("/reset-password", status_code=status.HTTP_204_NO_CONTENT)
+def reset_password(payload: ResetPasswordRequest, email: str, db: Session = Depends(get_db)):
+    service = AuthService(db)
+    service.reset_password(payload, email)
+
+
+@router.get("/sessions", response_model=list[SessionOut])
+def list_sessions(current_user: User = Depends(get_current_user), db: Session = Depends(get_db)):
+    from app.modules.auth.repository import AuthRepository
+
+    repo = AuthRepository(db)
+    return repo.get_active_sessions(current_user.id)
