@@ -39,3 +39,8 @@ def register_mentor(payload: RegisterMentorRequest, db: Session = Depends(get_db
     user = service.register_mentor(payload)
     return user
 
+
+@router.post("/verify-email", response_model=UserOut)
+def verify_email(payload: VerifyEmailRequest, db: Session = Depends(get_db)):
+    service = AuthService(db)
+    return service.verify_email(payload)
