@@ -96,6 +96,8 @@ class AuthService:
         logger.info("Mentor registered: %s", user.email)
         return user
 
+    
+    
     def _issue_email_verification(self, user: User) -> str:
         otp_code = generate_otp()
         raw_token = generate_url_safe_token()
@@ -115,6 +117,7 @@ class AuthService:
         )
         return raw_token
 
+    
     def verify_email(self, payload: VerifyEmailRequest) -> User:
         user: User | None = None
 
@@ -127,6 +130,7 @@ class AuthService:
                 raise BadRequestError("Invalid or expired OTP code.")
         elif payload.token:
             
+            # Token-based flow: search among unused, unexpired tokens for a hash match.
             candidates: list[EmailVerificationToken] = []
             if payload.email:
                 user = self.repo.get_user_by_email(payload.email)
@@ -151,6 +155,7 @@ class AuthService:
         logger.info("Email verified for user: %s", user.email)
         return user
 
+
     def login(self, payload: LoginRequest, ip_address: str | None = None) -> tuple[User, TokenResponse]:
         user = self.repo.get_user_by_email(payload.email)
         if not user or not user.hashed_password or not verify_password(payload.password, user.hashed_password):
@@ -166,6 +171,7 @@ class AuthService:
         self.db.add(user)
         self.repo.commit()
         return user, tokens
+
 
     def _issue_tokens(self, user: User, device_info: str | None, ip_address: str | None) -> TokenResponse:
         session = UserSession(user_id=user.id, device_info=device_info, ip_address=ip_address)
@@ -183,6 +189,7 @@ class AuthService:
         self.repo.create_refresh_token(refresh_row)
 
         return TokenResponse(access_token=access_token, refresh_token=raw_refresh)
+
 
     def refresh_access_token(self, raw_refresh_token: str) -> TokenResponse:
         try:
@@ -208,6 +215,7 @@ class AuthService:
 
         if not matched or matched.expires_at < utcnow():
             
+        
             self.repo.revoke_session(session)
             self.repo.commit()
             raise UnauthorizedError("Refresh token is invalid, expired, or already used.")
@@ -217,6 +225,7 @@ class AuthService:
             raise UnauthorizedError("User not found.")
 
         
+    
         access_token = create_access_token(subject=user.id, role=user.role.value)
         new_raw_refresh, expires_at = create_refresh_token(subject=user.id, session_id=session.id)
         new_token_row = RefreshToken(
@@ -298,3 +307,4 @@ class AuthService:
         user.hashed_password = hash_password(new_password)
         self.db.add(user)
         self.repo.commit()
+        return TokenResponse(access_token=access_token, refresh_token=new_raw_refresh)

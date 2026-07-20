@@ -46,6 +46,7 @@ def verify_email(payload: VerifyEmailRequest, db: Session = Depends(get_db)):
     return service.verify_email(payload)
 
 
+
 @router.post("/login", response_model=TokenResponse)
 def login(payload: LoginRequest, request: Request, db: Session = Depends(get_db)):
     service = AuthService(db)
@@ -65,9 +66,7 @@ def logout_current_device(
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ):
-    # Access tokens don't carry session id; logout-all is the reliable path here.
-    # We still expose this endpoint per spec, revoking all sessions if a specific
-    # session cannot be determined from the access token.
+    
     service = AuthService(db)
     service.logout_all_devices(current_user.id)
 
