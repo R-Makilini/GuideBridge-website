@@ -157,7 +157,7 @@ class AuthService:
         return user
 
 
-def login(self, payload: LoginRequest, ip_address: str | None = None) -> tuple[User, TokenResponse]:
+    def login(self, payload: LoginRequest, ip_address: str | None = None) -> tuple[User, TokenResponse]:
         user = self.repo.get_user_by_email(payload.email)
         if not user or not user.hashed_password or not verify_password(payload.password, user.hashed_password):
             raise UnauthorizedError("Invalid email or password.")
@@ -172,3 +172,21 @@ def login(self, payload: LoginRequest, ip_address: str | None = None) -> tuple[U
         self.db.add(user)
         self.repo.commit()
         return user, tokens
+
+
+    def _issue_tokens(self, user: User, device_info: str | None, ip_address: str | None) -> TokenResponse:
+        session = UserSession(user_id=user.id, device_info=device_info, ip_address=ip_address)
+        self.repo.create_session(session)
+
+        access_token = create_access_token(subject=user.id, role=user.role.value)
+        raw_refresh, expires_at = create_refresh_token(subject=user.id, session_id=session.id)
+
+        refresh_row = RefreshToken(
+            session_id=session.id,
+            user_id=user.id,
+            token_hash=hash_token(raw_refresh),
+            expires_at=expires_at,
+        )
+        self.repo.create_refresh_token(refresh_row)
+
+        return TokenResponse(access_token=access_token, refresh_token=raw_refresh)

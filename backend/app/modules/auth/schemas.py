@@ -46,3 +46,8 @@ class LoginRequest(BaseModel):
     password: str
     device_info: Optional[str] = None
 
+
+class TokenResponse(BaseModel):
+    access_token: str
+    refresh_token: str
+    token_type: str = "bearer"
