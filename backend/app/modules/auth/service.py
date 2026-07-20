@@ -74,3 +74,27 @@ class AuthService:
         self.repo.commit()
         logger.info("Student registered: %s", user.email)
         return user
+    
+    
+    def register_mentor(self, payload: RegisterMentorRequest) -> User:
+        if self.repo.get_user_by_email(payload.email):
+            raise ConflictError("An account with this email already exists.")
+
+        user = User(
+            email=payload.email,
+            phone=payload.phone,
+            full_name=payload.full_name,
+            hashed_password=hash_password(payload.password),
+            role=UserRole.MENTOR,
+            status=UserStatus.PENDING,
+            auth_provider=AuthProvider.LOCAL,
+        )
+        self.repo.create_user(user)
+
+        profile = MentorProfile(user_id=user.id, university_id=payload.university_id)
+        self.db.add(profile)
+
+        self._issue_email_verification(user)
+        self.repo.commit()
+        logger.info("Mentor registered: %s", user.email)
+        return user
