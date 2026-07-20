@@ -44,3 +44,11 @@ def register_mentor(payload: RegisterMentorRequest, db: Session = Depends(get_db
 def verify_email(payload: VerifyEmailRequest, db: Session = Depends(get_db)):
     service = AuthService(db)
     return service.verify_email(payload)
+
+
+
+@router.post("/login", response_model=TokenResponse)
+def login(payload: LoginRequest, request: Request, db: Session = Depends(get_db)):
+    service = AuthService(db)
+    _, tokens = service.login(payload, ip_address=_client_ip(request))
+    return tokens

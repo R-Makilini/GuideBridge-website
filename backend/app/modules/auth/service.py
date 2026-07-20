@@ -155,3 +155,20 @@ class AuthService:
         self.repo.commit()
         logger.info("Email verified for user: %s", user.email)
         return user
+
+
+def login(self, payload: LoginRequest, ip_address: str | None = None) -> tuple[User, TokenResponse]:
+        user = self.repo.get_user_by_email(payload.email)
+        if not user or not user.hashed_password or not verify_password(payload.password, user.hashed_password):
+            raise UnauthorizedError("Invalid email or password.")
+
+        if user.status == UserStatus.SUSPENDED:
+            raise UnauthorizedError("Your account has been suspended. Contact support.")
+        if user.status == UserStatus.BANNED:
+            raise UnauthorizedError("Your account has been banned.")
+
+        tokens = self._issue_tokens(user, payload.device_info, ip_address)
+        user.last_login_at = utcnow()
+        self.db.add(user)
+        self.repo.commit()
+        return user, tokens
