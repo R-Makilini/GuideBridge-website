@@ -98,3 +98,60 @@ class AuthService:
         self.repo.commit()
         logger.info("Mentor registered: %s", user.email)
         return user
+    
+    
+    def _issue_email_verification(self, user: User) -> str:
+        otp_code = generate_otp()
+        raw_token = generate_url_safe_token()
+        token_row = EmailVerificationToken(
+            user_id=user.id,
+            token_hash=hash_token(raw_token),
+            otp_code=otp_code,
+            expires_at=utcnow() + timedelta(minutes=EMAIL_TOKEN_TTL_MINUTES),
+        )
+        self.repo.create_email_verification_token(token_row)
+
+        verify_link = f"{settings.FRONTEND_URL}/verify-email?token={raw_token}&email={user.email}"
+        email_service.send(
+            to_email=user.email,
+            subject="Verify your GuideBridge account",
+            html_body=verification_email_html(user.full_name, otp_code, verify_link),
+        )
+        return raw_token
+
+    
+    def verify_email(self, payload: VerifyEmailRequest) -> User:
+        user: User | None = None
+
+        if payload.otp_code and payload.email:
+            user = self.repo.get_user_by_email(payload.email)
+            if not user:
+                raise NotFoundError("User not found.")
+            token_row = self.repo.get_valid_email_token_by_otp(user.id, payload.otp_code)
+            if not token_row:
+                raise BadRequestError("Invalid or expired OTP code.")
+        elif payload.token:
+            # Token-based flow: search among unused, unexpired tokens for a hash match.
+            candidates: list[EmailVerificationToken] = []
+            if payload.email:
+                user = self.repo.get_user_by_email(payload.email)
+                if user:
+                    candidates = self.repo.get_latest_email_tokens(user.id)
+            token_row = None
+            for candidate in candidates:
+                if verify_token_hash(payload.token, candidate.token_hash):
+                    token_row = candidate
+                    break
+            if not token_row:
+                raise BadRequestError("Invalid or expired verification token.")
+        else:
+            raise BadRequestError("Either an OTP code or a token must be provided.")
+
+        token_row.used_at = utcnow()
+        user.is_email_verified = True
+        user.status = UserStatus.ACTIVE
+        self.db.add(token_row)
+        self.db.add(user)
+        self.repo.commit()
+        logger.info("Email verified for user: %s", user.email)
+        return user
