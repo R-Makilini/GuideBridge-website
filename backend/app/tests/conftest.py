@@ -46,8 +46,6 @@ class _FakeStorageBackend:
 def fake_storage_backend(monkeypatch):
     fake = lambda: _FakeStorageBackend()  # noqa: E731
     monkeypatch.setattr("app.integrations.storage.get_storage_backend", fake)
-    monkeypatch.setattr("app.modules.resources.service.get_storage_backend", fake)
-    monkeypatch.setattr("app.modules.verification.service.get_storage_backend", fake)
 
 
 @pytest.fixture(scope="function")
